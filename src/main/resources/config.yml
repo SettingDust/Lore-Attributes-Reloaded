@@ -1,0 +1,30 @@
+lore:
+  health:
+    base-health: 20
+    keyword: health
+  regen:
+    keyword: regen
+  attack-speed:
+    enabled: false
+    display-message: false
+    message: "You're too tired to do damage."
+    base-delay: 2
+    keyword: attack speed
+  damage:
+    keyword: damage
+  dodge:
+    keyword: evasion
+  critical-chance:
+    keyword: critical chance
+  critical-damage:
+    keyword: critical damage
+  life-steal:
+    keyword: life steal
+  armor:
+    keyword: armor
+  restriction:
+    keyword: type
+    display-message: false
+    message: "You can't use the %itemname%"
+integration:
+  permissionshealth: false
