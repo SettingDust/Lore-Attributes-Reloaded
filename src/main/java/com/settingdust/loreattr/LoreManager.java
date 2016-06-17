@@ -65,8 +65,8 @@ public class LoreManager {
         this.levelRegex = Pattern.compile(LoreAttributes.config.getString("lore.level.keyword").toLowerCase() + "[ ](\\d+)");
         this.unlimDuraRegex = Pattern.compile(LoreAttributes.config.getString("lore.unlimitdura.keyword").toLowerCase());
         this.duraRegenRegex = Pattern.compile("[+](\\d+)[ ](" + LoreAttributes.config.getString("lore.duraregen.keyword").toLowerCase() + ")");
-        this.expRegex = Pattern.compile("[+](\\d+)[% ](" + LoreAttributes.config.getString("lore.armor.keyword").toLowerCase() + ")");
-        this.boundRegex = Pattern.compile("(" + LoreAttributes.config.getString("lore.bound.keyword").toLowerCase() + ") [\\*]");
+        this.expRegex = Pattern.compile("[+](\\d+)[%][ ](" + LoreAttributes.config.getString("lore.exp.keyword").toLowerCase() + ")");
+        this.boundRegex = Pattern.compile("(" + LoreAttributes.config.getString("lore.bound.keyword").toLowerCase() + ": )(\\w*)");
     }
 
     public void disable() {
@@ -627,7 +627,8 @@ public class LoreManager {
             List lore = item.getItemMeta().getLore();
             String allLore = lore.toString().toLowerCase();
             Matcher matcher = this.duraRegenRegex.matcher(allLore);
-            duraRegen = Integer.valueOf(matcher.group(1));
+            if (matcher.find())
+                duraRegen = Integer.valueOf(matcher.group(1));
         }
         return duraRegen;
     }
@@ -640,28 +641,23 @@ public class LoreManager {
                     (item.getItemMeta().hasLore())) {
                 List lore = item.getItemMeta().getLore();
                 String allLore = lore.toString().toLowerCase();
-
                 Matcher valueMatcher = this.expRegex.matcher(allLore);
                 if (valueMatcher.find()) {
                     exp = exp + Integer.valueOf(valueMatcher.group(1));
                 }
-
             }
-
         }
 
-        ItemStack item = player.getEquipment().getItemInHand();
+        ItemStack item = player.getItemInHand();
         if ((item != null) &&
                 (item.hasItemMeta()) &&
                 (item.getItemMeta().hasLore())) {
             List lore = item.getItemMeta().getLore();
             String allLore = lore.toString().toLowerCase();
-
             Matcher valueMatcher = this.expRegex.matcher(allLore);
             if (valueMatcher.find()) {
                 exp = exp + Integer.valueOf(valueMatcher.group(1));
             }
-
         }
         return exp;
     }
@@ -675,7 +671,9 @@ public class LoreManager {
             List lore = item.getItemMeta().getLore();
             String allLore = lore.toString().toLowerCase();
             Matcher matcher = this.boundRegex.matcher(allLore);
-            player = matcher.group(1);
+            if (matcher.find()) {
+                player = matcher.group(2);
+            }
         }
         return player;
     }
