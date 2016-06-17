@@ -1,5 +1,6 @@
 package com.settingdust.loreattr;
 
+import org.bukkit.Material;
 import org.bukkit.entity.Arrow;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
@@ -10,6 +11,8 @@ import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityRegainHealthEvent;
 import org.bukkit.event.entity.EntityShootBowEvent;
 import org.bukkit.event.inventory.CraftItemEvent;
+import org.bukkit.event.player.PlayerItemBreakEvent;
+import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
 public class LoreEvents
@@ -125,6 +128,21 @@ public class LoreEvents
         if (!LoreAttributes.loreManager.canUse((Player) event.getDamager(), ((Player) event.getDamager()).getItemInHand())) {
             event.setCancelled(true);
             return;
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST)
+    public void applyUnlimitDura(PlayerItemBreakEvent event) {
+        if (LoreAttributes.loreManager.isUnlimitDura(event.getBrokenItem())) {
+            Inventory inv = event.getPlayer().getInventory();
+            ItemStack[] items = inv.getContents();
+            ItemStack item = event.getBrokenItem();
+            for (int i = 0; i < items.length; i++) {
+                if (items[i] == item) {
+                    items[i].setDurability((short) 1);
+                    inv.setContents(items);
+                }
+            }
         }
     }
 }

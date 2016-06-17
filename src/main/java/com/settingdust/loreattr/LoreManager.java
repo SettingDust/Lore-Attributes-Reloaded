@@ -28,6 +28,10 @@ public class LoreManager {
     private Pattern armorRegex;
     private Pattern restrictionRegex;
     private Pattern levelRegex;
+    private Pattern unlimDuraRegex;
+    private Pattern duraRegenRegex;
+    private Pattern expRegex;
+
     private Map<String, Timestamp> attackLog;
     private boolean attackSpeedEnabled;
     private Random generator;
@@ -57,7 +61,10 @@ public class LoreManager {
         this.lifestealRegex = Pattern.compile("[+](\\d+)[ ](" + LoreAttributes.config.getString("lore.life-steal.keyword").toLowerCase() + ")");
         this.armorRegex = Pattern.compile("[+](\\d+)[ ](" + LoreAttributes.config.getString("lore.armor.keyword").toLowerCase() + ")");
         this.restrictionRegex = Pattern.compile("(" + LoreAttributes.config.getString("lore.restriction.keyword").toLowerCase() + ": )(\\w*)");
-        this.levelRegex = Pattern.compile("level (\\d+)");
+        this.levelRegex = Pattern.compile(LoreAttributes.config.getString("lore.level.keyword").toLowerCase() + "[ ](\\d+)");
+        this.unlimDuraRegex = Pattern.compile(LoreAttributes.config.getString("lore.unlimitdura.keyword").toLowerCase());
+        this.duraRegenRegex = Pattern.compile(LoreAttributes.config.getString("lore.duraregen.keyword").toLowerCase() + ": (\\d+)");
+        this.expRegex = Pattern.compile(LoreAttributes.config.getString("lore.exp.keyword").toLowerCase() + ": (\\d+)[%]");
     }
 
     public void disable() {
@@ -114,7 +121,7 @@ public class LoreManager {
             Matcher valueMatcher = this.levelRegex.matcher(allLore);
             if (valueMatcher.find()) {
                 if (player.getLevel() < Integer.valueOf(valueMatcher.group(1))) {
-                    player.sendMessage("Item was not able to be equipped.");
+                    player.sendMessage(ChatColor.RED + "物品不可使用!");
                     return false;
                 }
             }
@@ -441,10 +448,6 @@ public class LoreManager {
         return hpToAdd;
     }
 
-    public int getBaseHealth(Player player) {
-        return LoreAttributes.config.getInt("lore.health.base-health");
-    }
-
     public int getRegenBonus(LivingEntity entity) {
         if (!entity.isValid()) {
             return 0;
@@ -564,17 +567,6 @@ public class LoreManager {
         return false;
     }
 
-    private int getPermissionsHealth(Player player) {
-        int hp = LoreAttributes.config.getInt("lore.health.base-health");
-        try {
-            hp = LoreAttributes.config.getInt("lore.health.base-health");
-        } catch (Exception e) {
-            return hp;
-        }
-
-        return hp;
-    }
-
     public void displayLoreStats(Player sender) {
         HashSet<String> message = new HashSet<String>();
 
@@ -609,5 +601,18 @@ public class LoreManager {
             sender.sendMessage(newMessage);
         }
         message.clear();
+    }
+
+    public boolean isUnlimitDura(ItemStack item) {
+        if (item != null
+                && item.hasItemMeta()
+                && !item.getType().equals(Material.AIR)
+                && item.getItemMeta().hasLore()) {
+            List lore = item.getItemMeta().getLore();
+            String allLore = lore.toString().toLowerCase();
+            Matcher matcher = this.unlimDuraRegex.matcher(allLore);
+            return (matcher.find());
+        }
+        return false;
     }
 }

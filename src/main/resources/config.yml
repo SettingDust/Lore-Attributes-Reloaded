@@ -26,5 +26,13 @@ lore:
     keyword: type
     display-message: false
     message: "You can't use the %itemname%"
+  level:
+    keyword: level
+  unlimitdura:
+    keyword: unlimitdura
+  duraregen:
+    keyword: duraregen
+  exp:
+    keyword: exp
 integration:
   permissionshealth: false

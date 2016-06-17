@@ -35,7 +35,7 @@ public class LoreAttributes extends JavaPlugin {
                 return false;
             }
             Player p = (Player) sender;
-            p.sendMessage("Health: " + p.getHealth() + "/" + p.getMaxHealth());
+            p.sendMessage("生命值: " + p.getHealth() + "/" + p.getMaxHealth());
             return true;
         }
 
