@@ -22,7 +22,7 @@ public class LoreAttributes extends JavaPlugin {
             loreManager = new LoreManager(this);
         }
 
-        Bukkit.getServer().getPluginManager().registerEvents(new LoreEvents(), this);
+        Bukkit.getServer().getPluginManager().registerEvents(new LoreEvents(this), this);
     }
 
     public void onDisable() {
