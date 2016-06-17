@@ -1,6 +1,7 @@
 package com.settingdust.loreattr;
 
-import org.bukkit.Material;
+import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.entity.Arrow;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
@@ -11,12 +12,35 @@ import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityRegainHealthEvent;
 import org.bukkit.event.entity.EntityShootBowEvent;
 import org.bukkit.event.inventory.CraftItemEvent;
+import org.bukkit.event.player.PlayerExpChangeEvent;
+import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerItemBreakEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
-public class LoreEvents
-        implements Listener {
+import java.util.ArrayList;
+import java.util.List;
+
+public class LoreEvents implements Listener {
+
+    public LoreEvents(LoreAttributes plugin) {
+        Bukkit.getScheduler().runTaskTimer(plugin, new Runnable() {
+            public void run() {
+                List<Player> players = new ArrayList<Player>(Bukkit.getServer().getOnlinePlayers());
+                for (Player player : players) {
+                    Inventory inv = player.getInventory();
+                    ItemStack[] items = inv.getContents();
+                    for (int i = 0; i < items.length; i++) {
+                        int regen = LoreAttributes.loreManager.getDuraRegen(items[i]);
+                        if (regen != 0) {
+                            items[i].setDurability((short) (items[i].getDurability() + regen));
+                        }
+                    }
+                    inv.setContents(items);
+                }
+            }
+        }, 20L, 0L);
+    }
 
     @EventHandler(priority = EventPriority.HIGH)
     public void modifyEntityDamage(EntityDamageByEntityEvent event) {
@@ -86,7 +110,6 @@ public class LoreEvents
         }
     }
 
-
     @EventHandler(priority = EventPriority.NORMAL)
     public void applyHealthRegen(EntityRegainHealthEvent event) {
         if (event.isCancelled()) {
@@ -131,7 +154,7 @@ public class LoreEvents
         }
     }
 
-    @EventHandler(priority = EventPriority.HIGHEST)
+    @EventHandler(priority = EventPriority.NORMAL)
     public void applyUnlimitDura(PlayerItemBreakEvent event) {
         if (LoreAttributes.loreManager.isUnlimitDura(event.getBrokenItem())) {
             Inventory inv = event.getPlayer().getInventory();
@@ -143,6 +166,25 @@ public class LoreEvents
                     inv.setContents(items);
                 }
             }
+        }
+    }
+
+    @EventHandler(priority = EventPriority.NORMAL)
+    public void applyExp(PlayerExpChangeEvent event) {
+        if (event.getAmount() > 0) {
+            event.setAmount(event.getAmount() + LoreAttributes.loreManager.getExp(event.getPlayer()) / 100 * event.getAmount());
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST)
+    public void checkItemBound(PlayerInteractEvent event) {
+        ItemStack item = event.getItem();
+        String name = LoreAttributes.loreManager.getBound(item);
+        if (name != null
+                && name != event.getPlayer().getName()) {
+            Player player = event.getPlayer();
+            player.sendMessage(ChatColor.RED + "此物品只可由" + name + "使用！");
+            event.setCancelled(true);
         }
     }
 }

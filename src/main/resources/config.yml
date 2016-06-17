@@ -34,5 +34,7 @@ lore:
     keyword: duraregen
   exp:
     keyword: exp
+  bound:
+    keyword: bound
 integration:
   permissionshealth: false

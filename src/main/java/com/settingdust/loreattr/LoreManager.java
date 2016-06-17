@@ -31,6 +31,7 @@ public class LoreManager {
     private Pattern unlimDuraRegex;
     private Pattern duraRegenRegex;
     private Pattern expRegex;
+    private Pattern boundRegex;
 
     private Map<String, Timestamp> attackLog;
     private boolean attackSpeedEnabled;
@@ -63,8 +64,9 @@ public class LoreManager {
         this.restrictionRegex = Pattern.compile("(" + LoreAttributes.config.getString("lore.restriction.keyword").toLowerCase() + ": )(\\w*)");
         this.levelRegex = Pattern.compile(LoreAttributes.config.getString("lore.level.keyword").toLowerCase() + "[ ](\\d+)");
         this.unlimDuraRegex = Pattern.compile(LoreAttributes.config.getString("lore.unlimitdura.keyword").toLowerCase());
-        this.duraRegenRegex = Pattern.compile(LoreAttributes.config.getString("lore.duraregen.keyword").toLowerCase() + ": (\\d+)");
-        this.expRegex = Pattern.compile(LoreAttributes.config.getString("lore.exp.keyword").toLowerCase() + ": (\\d+)[%]");
+        this.duraRegenRegex = Pattern.compile("[+](\\d+)[ ](" + LoreAttributes.config.getString("lore.duraregen.keyword").toLowerCase() + ")");
+        this.expRegex = Pattern.compile("[+](\\d+)[% ](" + LoreAttributes.config.getString("lore.armor.keyword").toLowerCase() + ")");
+        this.boundRegex = Pattern.compile("(" + LoreAttributes.config.getString("lore.bound.keyword").toLowerCase() + ") [\\*]");
     }
 
     public void disable() {
@@ -614,5 +616,67 @@ public class LoreManager {
             return (matcher.find());
         }
         return false;
+    }
+
+    public int getDuraRegen(ItemStack item) {
+        int duraRegen = 0;
+        if (item != null
+                && item.hasItemMeta()
+                && !item.getType().equals(Material.AIR)
+                && item.getItemMeta().hasLore()) {
+            List lore = item.getItemMeta().getLore();
+            String allLore = lore.toString().toLowerCase();
+            Matcher matcher = this.duraRegenRegex.matcher(allLore);
+            duraRegen = Integer.valueOf(matcher.group(1));
+        }
+        return duraRegen;
+    }
+
+    public int getExp(Player player) {
+        int exp = 0;
+        for (ItemStack item : player.getEquipment().getArmorContents()) {
+            if ((item != null) &&
+                    (item.hasItemMeta()) &&
+                    (item.getItemMeta().hasLore())) {
+                List lore = item.getItemMeta().getLore();
+                String allLore = lore.toString().toLowerCase();
+
+                Matcher valueMatcher = this.expRegex.matcher(allLore);
+                if (valueMatcher.find()) {
+                    exp = exp + Integer.valueOf(valueMatcher.group(1));
+                }
+
+            }
+
+        }
+
+        ItemStack item = player.getEquipment().getItemInHand();
+        if ((item != null) &&
+                (item.hasItemMeta()) &&
+                (item.getItemMeta().hasLore())) {
+            List lore = item.getItemMeta().getLore();
+            String allLore = lore.toString().toLowerCase();
+
+            Matcher valueMatcher = this.expRegex.matcher(allLore);
+            if (valueMatcher.find()) {
+                exp = exp + Integer.valueOf(valueMatcher.group(1));
+            }
+
+        }
+        return exp;
+    }
+
+    public String getBound(ItemStack item) {
+        String player = null;
+        if (item != null
+                && item.hasItemMeta()
+                && !item.getType().equals(Material.AIR)
+                && item.getItemMeta().hasLore()) {
+            List lore = item.getItemMeta().getLore();
+            String allLore = lore.toString().toLowerCase();
+            Matcher matcher = this.boundRegex.matcher(allLore);
+            player = matcher.group(1);
+        }
+        return player;
     }
 }
