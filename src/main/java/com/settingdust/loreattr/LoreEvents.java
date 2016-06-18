@@ -1,7 +1,6 @@
 package com.settingdust.loreattr;
 
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.entity.Arrow;
 import org.bukkit.entity.LivingEntity;
@@ -9,6 +8,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.bukkit.event.entity.EntityDamageByBlockEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityRegainHealthEvent;
 import org.bukkit.event.entity.EntityShootBowEvent;
@@ -18,6 +18,7 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.event.player.PlayerExpChangeEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.player.PlayerItemDamageEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
@@ -42,9 +43,16 @@ public class LoreEvents implements Listener {
                             inv.setItem(i, items[i]);
                         }
                     }
+                    items = player.getEquipment().getArmorContents();
+                    for (int i = 0; i < items.length; i++) {
+                        int regen = LoreAttributes.loreManager.getDuraRegen(items[i]);
+                        if (regen != 0 && items[i].getDurability() > 0) {
+                            items[i].setDurability((short) (items[i].getDurability() - regen));
+                        }
+                    }
                 }
             }
-        }, 0L, 20L);
+        }, 0L, 60L);
     }
 
     @EventHandler(priority = EventPriority.HIGH)
@@ -132,29 +140,54 @@ public class LoreEvents implements Listener {
     @EventHandler(priority = EventPriority.NORMAL)
     public void checkArmorRestriction(InventoryClickEvent event) {
         ItemStack item = event.getCursor();
-        if (event.getSlotType().equals(InventoryType.SlotType.ARMOR)
-                && event.getWhoClicked() instanceof Player) {
-            event.setCancelled(
-                    !LoreAttributes.loreManager.canUse((Player) event.getWhoClicked(), item)
-            );
+        if (event.getWhoClicked() instanceof Player) {
+            if (event.getSlotType().equals(InventoryType.SlotType.ARMOR)) {
+                event.setCancelled(
+                        !LoreAttributes.loreManager.canUse((Player) event.getWhoClicked(), item)
+                );
+            } else if (event.getClick().equals(ClickType.SHIFT_LEFT)
+                    || event.getClick().equals(ClickType.SHIFT_RIGHT)) {
+                final LivingEntity livingEntity = event.getWhoClicked();
+                item = event.getCurrentItem();
+                final ItemStack[] armors = livingEntity.getEquipment().getArmorContents();
+                final InventoryClickEvent e = event;
+                final ItemStack fitem = item;
+                Bukkit.getScheduler().runTaskLater(instance, new Runnable() {
+                    public void run() {
+                        ItemStack[] nowAromors = livingEntity.getEquipment().getArmorContents();
+                        for (int i = 0; i < armors.length; i++) {
+                            if (nowAromors != null
+                                    && !nowAromors[i].getType().equals(Material.AIR)
+                                    && !LoreAttributes.loreManager.itemIsSimilar(armors[i], nowAromors[i])
+                                    && !LoreAttributes.loreManager.canUse((Player) e.getWhoClicked(), fitem)) {
+                                nowAromors[i] = null;
+                                fitem.setAmount(1);
+                                ((Player) livingEntity).getInventory().addItem(fitem);
+                                livingEntity.getEquipment().setArmorContents(nowAromors);
+                            }
+                        }
+                    }
+                }, 0L);
+            }
         }
     }
 
     @EventHandler(priority = EventPriority.NORMAL)
-    public void applyHealth(final InventoryClickEvent event) {
+    public void applyHealth(InventoryClickEvent event) {
         if (event.getWhoClicked() instanceof Player) {
             final LivingEntity livingEntity = event.getWhoClicked();
-            ItemStack item = event.getCurrentItem();
-            if (event.getSlotType().equals(InventoryType.SlotType.ARMOR)) {
-                event.getWhoClicked().setMaxHealth(livingEntity.getMaxHealth()
-                        - LoreAttributes.loreManager.getHealth(item));
-                event.getWhoClicked().setHealth(livingEntity.getMaxHealth());
-                item = event.getCursor();
+            ItemStack item = event.getCursor();
+            if (event.getSlotType().equals(InventoryType.SlotType.ARMOR) && !event.getClick().equals(ClickType.DOUBLE_CLICK)) {
                 event.getWhoClicked().setMaxHealth(livingEntity.getMaxHealth()
                         + LoreAttributes.loreManager.getHealth(item));
                 event.getWhoClicked().setHealth(livingEntity.getMaxHealth());
+                item = event.getCurrentItem();
+                event.getWhoClicked().setMaxHealth(livingEntity.getMaxHealth()
+                        - LoreAttributes.loreManager.getHealth(item));
+                event.getWhoClicked().setHealth(livingEntity.getMaxHealth());
             } else if (event.getClick().equals(ClickType.SHIFT_LEFT)
                     || event.getClick().equals(ClickType.SHIFT_RIGHT)) {
+                item = event.getCurrentItem();
                 final ItemStack[] armors = livingEntity.getEquipment().getArmorContents();
                 final InventoryClickEvent e = event;
                 final ItemStack fitem = item;
@@ -171,11 +204,10 @@ public class LoreEvents implements Listener {
                             }
                         }
                     }
-                }, 1L);
+                }, 0L);
             }
         }
     }
-
 
     @EventHandler(priority = EventPriority.HIGHEST)
     public void checkBowRestriction(EntityShootBowEvent event) {
@@ -207,18 +239,9 @@ public class LoreEvents implements Listener {
     }
 
     @EventHandler(priority = EventPriority.NORMAL)
-    public void applyUnlimitDura(PlayerInteractEvent event) {
+    public void applyUnlimitDura(PlayerItemDamageEvent event) {
         if (LoreAttributes.loreManager.isUnlimitDura(event.getItem())) {
-            Inventory inv = event.getPlayer().getInventory();
-            ItemStack[] items = inv.getContents();
-            ItemStack item = event.getItem();
-            for (ItemStack item1 : items) {
-                if (item1 != null)
-                    if (item1 != null && item1.equals(item)) {
-                        item1.setDurability((short) 0);
-                        inv.setContents(items);
-                    }
-            }
+            event.setCancelled(true);
         }
     }
 
