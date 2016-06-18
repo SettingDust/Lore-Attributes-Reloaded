@@ -64,7 +64,7 @@ public class LoreManager {
         this.restrictionRegex = Pattern.compile("(" + LoreAttributes.config.getString("lore.restriction.keyword").toLowerCase() + ": )(\\w*)");
         this.levelRegex = Pattern.compile(LoreAttributes.config.getString("lore.level.keyword").toLowerCase() + "[ ](\\d+)");
         this.unlimDuraRegex = Pattern.compile(LoreAttributes.config.getString("lore.unlimitdura.keyword").toLowerCase());
-        this.duraRegenRegex = Pattern.compile("[+](\\d+)[ ](" + LoreAttributes.config.getString("lore.duraregen.keyword").toLowerCase() + ")");
+        this.duraRegenRegex = Pattern.compile("[+](\\d+)[/][s][ ](" + LoreAttributes.config.getString("lore.duraregen.keyword").toLowerCase() + ")");
         this.expRegex = Pattern.compile("[+](\\d+)[%][ ](" + LoreAttributes.config.getString("lore.exp.keyword").toLowerCase() + ")");
         this.boundRegex = Pattern.compile("(" + LoreAttributes.config.getString("lore.bound.keyword").toLowerCase() + ": )(\\w*)");
     }
@@ -123,7 +123,7 @@ public class LoreManager {
             Matcher valueMatcher = this.levelRegex.matcher(allLore);
             if (valueMatcher.find()) {
                 if (player.getLevel() < Integer.valueOf(valueMatcher.group(1))) {
-                    player.sendMessage(ChatColor.RED + "物品不可使用!");
+                    player.sendMessage(LoreAttributes.config.getString("lore.level.message"));
                     return false;
                 }
             }
@@ -137,7 +137,14 @@ public class LoreManager {
                 }
                 return false;
             }
-
+            valueMatcher = this.boundRegex.matcher(allLore);
+            if (valueMatcher.find()) {
+                String name = this.getBound(item);
+                if (!player.getName().equalsIgnoreCase(name)) {
+                    player.sendMessage(LoreAttributes.config.getString("lore.bound.message").replace("{name}", name));
+                    return false;
+                }
+            }
         }
 
         return true;
@@ -420,7 +427,7 @@ public class LoreManager {
         }
         Integer hpToAdd = getHpBonus(entity);
         entity.setMaxHealth(entity.getMaxHealth() + hpToAdd);
-        entity.setHealth(entity.getMaxHealth() + hpToAdd);
+        entity.setHealth(entity.getMaxHealth());
     }
 
     public int getHpBonus(LivingEntity entity) {
@@ -429,22 +436,9 @@ public class LoreManager {
             if ((item != null) &&
                     (item.hasItemMeta()) &&
                     (item.getItemMeta().hasLore())) {
-                List lore = item.getItemMeta().getLore();
-                String allLore = lore.toString().toLowerCase();
-                Matcher negmatcher = this.negHealthRegex.matcher(allLore);
-                Matcher matcher = this.healthRegex.matcher(allLore);
-                if (matcher.find()) {
-                    hpToAdd = hpToAdd + Integer.valueOf(matcher.group(1));
-                }
-                if (negmatcher.find()) {
-                    hpToAdd = hpToAdd - Integer.valueOf(negmatcher.group(1));
-                }
-
-                if (hpToAdd < 0) {
-                    hpToAdd = 0;
-                }
+                hpToAdd = hpToAdd + this.getHealth(item);
             }
-
+            if (hpToAdd < 0) hpToAdd = 0;
         }
 
         return hpToAdd;
@@ -676,5 +670,38 @@ public class LoreManager {
             }
         }
         return player;
+    }
+
+    public int getHealth(ItemStack item) {
+        int health = 0;
+        if (item != null
+                && item.hasItemMeta()
+                && !item.getType().equals(Material.AIR)
+                && item.getItemMeta().hasLore()) {
+            List lore = item.getItemMeta().getLore();
+            String allLore = lore.toString().toLowerCase();
+            Matcher matcher = this.healthRegex.matcher(allLore);
+            Matcher nematcher = this.negHealthRegex.matcher(allLore);
+            if (matcher.find())
+                health = health + Integer.valueOf(matcher.group(1));
+            if (nematcher.find())
+                health = health - Integer.valueOf(matcher.group(1));
+        }
+        return health;
+    }
+
+    public boolean itemIsSimilar(ItemStack item1, ItemStack item2) {
+        boolean similar = false;
+        if (item1 != null
+                && item1.hasItemMeta()
+                && !item1.getType().equals(Material.AIR)
+                && item1.getItemMeta().hasLore()
+                && item2 != null
+                && item2.hasItemMeta()
+                && !item2.getType().equals(Material.AIR)
+                && item2.getItemMeta().hasLore()) {
+            similar = item1.getItemMeta().equals(item2.getItemMeta());
+        }
+        return similar;
     }
 }

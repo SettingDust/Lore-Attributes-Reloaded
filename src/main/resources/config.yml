@@ -7,7 +7,7 @@ lore:
   attack-speed:
     enabled: false
     display-message: false
-    message: "ä½ æ”»å‡»å¤ªé¢‘ç¹äº†"
+    message: "Äã¹¥»÷Ì«Æµ·±ÁË"
     base-delay: 2
     keyword: attack speed
   damage:
@@ -25,9 +25,10 @@ lore:
   restriction:
     keyword: type
     display-message: false
-    message: "ä½ ä¸èƒ½ä½¿ç”¨%itemname%"
+    message: "Äã²»ÄÜÊ¹ÓÃ%itemname%"
   level:
     keyword: level
+    message: "ÄãµÄµÈ¼¶²»×ãÒÔÊ¹ÓÃ´ËÎïÆ·"
   unlimitdura:
     keyword: unlimitdura
   duraregen:
@@ -36,6 +37,6 @@ lore:
     keyword: exp
   bound:
     keyword: bound
-    message: "æœ¬ç‰©å“åªèƒ½ç”±{name}ä½¿ç”¨"
+    message: "±¾ÎïÆ·Ö»ÄÜÓÉ{name}Ê¹ÓÃ"
 integration:
   permissionshealth: false
