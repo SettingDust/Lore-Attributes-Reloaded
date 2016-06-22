@@ -8,17 +8,13 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
-import org.bukkit.event.entity.EntityDamageByBlockEvent;
+import org.bukkit.event.block.Action;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityRegainHealthEvent;
 import org.bukkit.event.entity.EntityShootBowEvent;
-import org.bukkit.event.inventory.ClickType;
-import org.bukkit.event.inventory.CraftItemEvent;
-import org.bukkit.event.inventory.InventoryClickEvent;
-import org.bukkit.event.inventory.InventoryType;
-import org.bukkit.event.player.PlayerExpChangeEvent;
-import org.bukkit.event.player.PlayerInteractEvent;
-import org.bukkit.event.player.PlayerItemDamageEvent;
+import org.bukkit.event.inventory.*;
+import org.bukkit.event.player.*;
+import org.bukkit.event.server.ServerCommandEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
@@ -55,7 +51,7 @@ public class LoreEvents implements Listener {
         }, 0L, 60L);
     }
 
-    @EventHandler(priority = EventPriority.HIGH)
+    @EventHandler(priority = EventPriority.HIGHEST)
     public void modifyEntityDamage(EntityDamageByEntityEvent event) {
         if ((event.isCancelled()) || (!(event.getEntity() instanceof LivingEntity))) {
             return;
@@ -137,77 +133,55 @@ public class LoreEvents implements Listener {
         }
     }
 
-    @EventHandler(priority = EventPriority.NORMAL)
-    public void checkArmorRestriction(InventoryClickEvent event) {
-        ItemStack item = event.getCursor();
-        if (event.getWhoClicked() instanceof Player) {
-            if (event.getSlotType().equals(InventoryType.SlotType.ARMOR)) {
-                event.setCancelled(
-                        !LoreAttributes.loreManager.canUse((Player) event.getWhoClicked(), item)
-                );
-            } else if (event.getClick().equals(ClickType.SHIFT_LEFT)
-                    || event.getClick().equals(ClickType.SHIFT_RIGHT)) {
-                final LivingEntity livingEntity = event.getWhoClicked();
-                item = event.getCurrentItem();
-                final ItemStack[] armors = livingEntity.getEquipment().getArmorContents();
-                final InventoryClickEvent e = event;
-                final ItemStack fitem = item;
-                Bukkit.getScheduler().runTaskLater(instance, new Runnable() {
-                    public void run() {
-                        ItemStack[] nowAromors = livingEntity.getEquipment().getArmorContents();
-                        for (int i = 0; i < armors.length; i++) {
-                            if (nowAromors != null
-                                    && !nowAromors[i].getType().equals(Material.AIR)
-                                    && !LoreAttributes.loreManager.itemIsSimilar(armors[i], nowAromors[i])
-                                    && !LoreAttributes.loreManager.canUse((Player) e.getWhoClicked(), fitem)) {
-                                nowAromors[i] = null;
-                                fitem.setAmount(1);
-                                ((Player) livingEntity).getInventory().addItem(fitem);
-                                livingEntity.getEquipment().setArmorContents(nowAromors);
-                            }
-                        }
-                    }
-                }, 0L);
-            }
-        }
-    }
-
-    @EventHandler(priority = EventPriority.NORMAL)
+    /**@EventHandler(priority = EventPriority.NORMAL)
     public void applyHealth(InventoryClickEvent event) {
-        if (event.getWhoClicked() instanceof Player) {
+    if (event.getWhoClicked() instanceof Player && !event.isCancelled()) {
             final LivingEntity livingEntity = event.getWhoClicked();
             ItemStack item = event.getCursor();
             if (event.getSlotType().equals(InventoryType.SlotType.ARMOR) && !event.getClick().equals(ClickType.DOUBLE_CLICK)) {
-                event.getWhoClicked().setMaxHealth(livingEntity.getMaxHealth()
-                        + LoreAttributes.loreManager.getHealth(item));
-                event.getWhoClicked().setHealth(livingEntity.getMaxHealth());
+    if (!LoreAttributes.loreManager.canUse((Player) livingEntity, item)) {
+    event.setCancelled(true);
+    } else {
+    event.getWhoClicked().setMaxHealth(livingEntity.getMaxHealth()
+    + LoreAttributes.loreManager.getHealth(item));
+    event.getWhoClicked().setHealth(livingEntity.getMaxHealth());
+    }
+
                 item = event.getCurrentItem();
-                event.getWhoClicked().setMaxHealth(livingEntity.getMaxHealth()
-                        - LoreAttributes.loreManager.getHealth(item));
-                event.getWhoClicked().setHealth(livingEntity.getMaxHealth());
+    if (LoreAttributes.loreManager.canUse((Player) livingEntity, item)) {
+    event.getWhoClicked().setMaxHealth(livingEntity.getMaxHealth()
+    - LoreAttributes.loreManager.getHealth(item));
+    event.getWhoClicked().setHealth(livingEntity.getMaxHealth());
+    }
             } else if (event.getClick().equals(ClickType.SHIFT_LEFT)
                     || event.getClick().equals(ClickType.SHIFT_RIGHT)) {
                 item = event.getCurrentItem();
                 final ItemStack[] armors = livingEntity.getEquipment().getArmorContents();
-                final InventoryClickEvent e = event;
                 final ItemStack fitem = item;
                 Bukkit.getScheduler().runTaskLater(instance, new Runnable() {
                     public void run() {
+    ItemStack[] nowArmors = livingEntity.getEquipment().getArmorContents();
                         for (int i = 0; i < armors.length; i++) {
-                            if (livingEntity.getEquipment().getArmorContents()[i] != null
-                                    && !livingEntity.getEquipment().getArmorContents()[i].getType().equals(Material.AIR)
-                                    && !LoreAttributes.loreManager.itemIsSimilar(armors[i],
-                                    livingEntity.getEquipment().getArmorContents()[i])) {
-                                e.getWhoClicked().setMaxHealth(livingEntity.getMaxHealth()
-                                        + LoreAttributes.loreManager.getHealth(fitem));
-                                e.getWhoClicked().setHealth(livingEntity.getMaxHealth());
+    if (nowArmors != null
+    && !nowArmors[i].getType().equals(Material.AIR)
+    && !LoreAttributes.loreManager.itemIsSimilar(armors[i], nowArmors[i])) {
+    if (!LoreAttributes.loreManager.canUse((Player) livingEntity, fitem)) {
+    nowArmors[i] = null;
+    fitem.setAmount(1);
+    ((Player) livingEntity).getInventory().addItem(fitem);
+    livingEntity.getEquipment().setArmorContents(armors);
+    } else {
+    livingEntity.setMaxHealth(livingEntity.getMaxHealth()
+    + LoreAttributes.loreManager.getHealth(fitem));
+    livingEntity.setHealth(livingEntity.getMaxHealth());
+    }
                             }
                         }
                     }
                 }, 0L);
             }
         }
-    }
+    }*/
 
     @EventHandler(priority = EventPriority.HIGHEST)
     public void checkBowRestriction(EntityShootBowEvent event) {
@@ -252,4 +226,75 @@ public class LoreEvents implements Listener {
             event.setAmount(exp);
         }
     }
+
+    /**
+     * A bad health apply
+     *
+     * @param event
+     */
+    @EventHandler(priority = EventPriority.NORMAL)
+    public void applyHealthClose(InventoryCloseEvent event) {
+        LoreAttributes.loreManager.applyHpBonus(event.getPlayer());
+    }
+
+    /**
+     * A bad health apply2
+     *
+     * @param event
+     */
+    @EventHandler(priority = EventPriority.NORMAL)
+    public void applyHealthJoin(PlayerJoinEvent event) {
+        LoreAttributes.loreManager.applyHpBonus(event.getPlayer());
+    }
+
+    @EventHandler(priority = EventPriority.NORMAL)
+    public void checkArmorRestriction(PlayerInteractEvent event) {
+        final Player livingEntity = event.getPlayer();
+        final ItemStack[] armors = livingEntity.getEquipment().getArmorContents();
+        final ItemStack fitem = event.getItem();
+        LoreAttributes.loreManager.applyHpBonus(livingEntity);
+        Bukkit.getScheduler().runTaskLater(instance, new Runnable() {
+            public void run() {
+                ItemStack[] nowArmors = livingEntity.getEquipment().getArmorContents();
+                for (int i = 0; i < armors.length; i++) {
+                    if (nowArmors != null
+                            && !nowArmors[i].getType().equals(Material.AIR)) {
+                        if (!LoreAttributes.loreManager.canUse(livingEntity, fitem) &&
+                                !LoreAttributes.loreManager.itemIsSimilar(armors[i], nowArmors[i])) {
+                            nowArmors[i] = armors[i];
+                            fitem.setAmount(1);
+                            livingEntity.getInventory().addItem(fitem);
+                            livingEntity.getEquipment().setArmorContents(nowArmors);
+                        } /**else if (LoreAttributes.loreManager.itemIsSimilar(nowArmors[i], fitem)) {
+                         livingEntity.setMaxHealth(livingEntity.getMaxHealth()
+                         + LoreAttributes.loreManager.getHealth(fitem));
+                         livingEntity.setHealth(livingEntity.getMaxHealth());
+                         }*/
+                        if (!LoreAttributes.loreManager.canUse(livingEntity, nowArmors[i])) {
+                            livingEntity.getInventory().addItem(nowArmors[i]);
+                            nowArmors[i] = null;
+                            livingEntity.getEquipment().setArmorContents(nowArmors);
+                        }
+                    }
+                }
+            }
+        }, 0L);
+    }
+
+    /**@EventHandler(priority = EventPriority.NORMAL)
+    public void applyHatHealth(PlayerCommandPreprocessEvent event) {
+    if (event.getMessage().equalsIgnoreCase("/hat")) {
+    Player player = event.getPlayer();
+    ItemStack item = player.getItemInHand();
+    if (LoreAttributes.loreManager.canUse(player, item)) {
+    player.setMaxHealth(player.getMaxHealth()
+    - LoreAttributes.loreManager.getHealth(player.getEquipment().getHelmet()));
+    player.setMaxHealth(player.getMaxHealth()
+    + LoreAttributes.loreManager.getHealth(item));
+    player.setHealth(player.getMaxHealth());
+    } else {
+    event.setCancelled(true);
+    }
+    }
+    }*/
 }

@@ -7,6 +7,7 @@ import java.util.regex.Pattern;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.GameMode;
 import org.bukkit.Material;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
@@ -117,7 +118,8 @@ public class LoreManager {
     public boolean canUse(Player player, ItemStack item) {
         if ((item != null) &&
                 (item.hasItemMeta()) &&
-                (item.getItemMeta().hasLore())) {
+                (item.getItemMeta().hasLore()) &&
+                !player.getGameMode().equals(GameMode.CREATIVE)) {
             List lore = item.getItemMeta().getLore();
             String allLore = lore.toString().toLowerCase();
             Matcher valueMatcher = this.levelRegex.matcher(allLore);
@@ -426,7 +428,8 @@ public class LoreManager {
             return;
         }
         Integer hpToAdd = getHpBonus(entity);
-        entity.setMaxHealth(entity.getMaxHealth() + hpToAdd);
+        //entity.setMaxHealth(entity.getMaxHealth() + hpToAdd);
+        entity.setMaxHealth(20 + hpToAdd);
         entity.setHealth(entity.getMaxHealth());
     }
 
@@ -693,14 +696,14 @@ public class LoreManager {
     public boolean itemIsSimilar(ItemStack item1, ItemStack item2) {
         boolean similar = false;
         if (item1 != null
-                && item1.hasItemMeta()
                 && !item1.getType().equals(Material.AIR)
-                && item1.getItemMeta().hasLore()
                 && item2 != null
-                && item2.hasItemMeta()
-                && !item2.getType().equals(Material.AIR)
-                && item2.getItemMeta().hasLore()) {
-            similar = item1.getItemMeta().equals(item2.getItemMeta());
+                && !item2.getType().equals(Material.AIR)) {
+            similar = item1.getDurability() == item2.getDurability()
+                    && item1.getType().equals(item2.getType());
+            if (item1.hasItemMeta() && item2.hasItemMeta())
+                similar = similar && item1.getItemMeta().equals(item2.getItemMeta());
+
         }
         return similar;
     }
