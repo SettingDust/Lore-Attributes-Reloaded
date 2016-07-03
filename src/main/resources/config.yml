@@ -7,7 +7,7 @@ lore:
   attack-speed:
     enabled: false
     display-message: false
-    message: "You're too tired to do damage."
+    message: "你攻击太频繁了"
     base-delay: 2
     keyword: attack speed
   damage:
@@ -25,6 +25,9 @@ lore:
   restriction:
     keyword: type
     display-message: false
-    message: "You can't use the %itemname%"
+    message: "你不能使用%itemname%"
+  level:
+    keyword: level
+    message: "你的等级不足以使用此物品"
 integration:
   permissionshealth: false

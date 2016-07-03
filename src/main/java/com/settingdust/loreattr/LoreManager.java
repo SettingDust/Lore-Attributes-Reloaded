@@ -7,13 +7,13 @@ import java.util.regex.Pattern;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.GameMode;
 import org.bukkit.Material;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
 public class LoreManager {
-    private LoreAttributes plugin;
     private Pattern healthRegex;
     private Pattern negHealthRegex;
     private Pattern regenRegex;
@@ -28,13 +28,12 @@ public class LoreManager {
     private Pattern armorRegex;
     private Pattern restrictionRegex;
     private Pattern levelRegex;
+
     private Map<String, Timestamp> attackLog;
     private boolean attackSpeedEnabled;
     private Random generator;
 
-    public LoreManager(LoreAttributes plugin) {
-        this.plugin = plugin;
-
+    public LoreManager() {
         this.generator = new Random();
 
         this.attackSpeedEnabled = false;
@@ -57,7 +56,7 @@ public class LoreManager {
         this.lifestealRegex = Pattern.compile("[+](\\d+)[ ](" + LoreAttributes.config.getString("lore.life-steal.keyword").toLowerCase() + ")");
         this.armorRegex = Pattern.compile("[+](\\d+)[ ](" + LoreAttributes.config.getString("lore.armor.keyword").toLowerCase() + ")");
         this.restrictionRegex = Pattern.compile("(" + LoreAttributes.config.getString("lore.restriction.keyword").toLowerCase() + ": )(\\w*)");
-        this.levelRegex = Pattern.compile("level (\\d+)");
+        this.levelRegex = Pattern.compile(LoreAttributes.config.getString("lore.level.keyword").toLowerCase() + "[ ](\\d+)");
     }
 
     public void disable() {
@@ -108,13 +107,14 @@ public class LoreManager {
     public boolean canUse(Player player, ItemStack item) {
         if ((item != null) &&
                 (item.hasItemMeta()) &&
-                (item.getItemMeta().hasLore())) {
+                (item.getItemMeta().hasLore()) &&
+                !player.getGameMode().equals(GameMode.CREATIVE)) {
             List lore = item.getItemMeta().getLore();
             String allLore = lore.toString().toLowerCase();
             Matcher valueMatcher = this.levelRegex.matcher(allLore);
             if (valueMatcher.find()) {
                 if (player.getLevel() < Integer.valueOf(valueMatcher.group(1))) {
-                    player.sendMessage("Item was not able to be equipped.");
+                    player.sendMessage(LoreAttributes.config.getString("lore.level.message"));
                     return false;
                 }
             }
@@ -128,7 +128,6 @@ public class LoreManager {
                 }
                 return false;
             }
-
         }
 
         return true;
@@ -410,8 +409,9 @@ public class LoreManager {
             return;
         }
         Integer hpToAdd = getHpBonus(entity);
-        entity.setMaxHealth(entity.getMaxHealth() + hpToAdd);
-        entity.setHealth(entity.getMaxHealth() + hpToAdd);
+        //entity.setMaxHealth(entity.getMaxHealth() + hpToAdd);
+        entity.setMaxHealth(20 + hpToAdd);
+        //entity.setHealth(entity.getHealth() + hpToAdd);
     }
 
     public int getHpBonus(LivingEntity entity) {
@@ -420,29 +420,11 @@ public class LoreManager {
             if ((item != null) &&
                     (item.hasItemMeta()) &&
                     (item.getItemMeta().hasLore())) {
-                List lore = item.getItemMeta().getLore();
-                String allLore = lore.toString().toLowerCase();
-                Matcher negmatcher = this.negHealthRegex.matcher(allLore);
-                Matcher matcher = this.healthRegex.matcher(allLore);
-                if (matcher.find()) {
-                    hpToAdd = hpToAdd + Integer.valueOf(matcher.group(1));
-                }
-                if (negmatcher.find()) {
-                    hpToAdd = hpToAdd - Integer.valueOf(negmatcher.group(1));
-                }
-
-                if (hpToAdd < 0) {
-                    hpToAdd = 0;
-                }
+                hpToAdd = hpToAdd + this.getHealth(item);
             }
-
+            if (hpToAdd < 0) hpToAdd = 0;
         }
-
         return hpToAdd;
-    }
-
-    public int getBaseHealth(Player player) {
-        return LoreAttributes.config.getInt("lore.health.base-health");
     }
 
     public int getRegenBonus(LivingEntity entity) {
@@ -564,17 +546,6 @@ public class LoreManager {
         return false;
     }
 
-    private int getPermissionsHealth(Player player) {
-        int hp = LoreAttributes.config.getInt("lore.health.base-health");
-        try {
-            hp = LoreAttributes.config.getInt("lore.health.base-health");
-        } catch (Exception e) {
-            return hp;
-        }
-
-        return hp;
-    }
-
     public void displayLoreStats(Player sender) {
         HashSet<String> message = new HashSet<String>();
 
@@ -609,5 +580,38 @@ public class LoreManager {
             sender.sendMessage(newMessage);
         }
         message.clear();
+    }
+
+    public int getHealth(ItemStack item) {
+        int health = 0;
+        if (item != null
+                && item.hasItemMeta()
+                && !item.getType().equals(Material.AIR)
+                && item.getItemMeta().hasLore()) {
+            List lore = item.getItemMeta().getLore();
+            String allLore = lore.toString().toLowerCase();
+            Matcher matcher = this.healthRegex.matcher(allLore);
+            Matcher nematcher = this.negHealthRegex.matcher(allLore);
+            if (matcher.find())
+                health = health + Integer.valueOf(matcher.group(1));
+            if (nematcher.find())
+                health = health - Integer.valueOf(matcher.group(1));
+        }
+        return health;
+    }
+
+    public boolean itemIsSimilar(ItemStack item1, ItemStack item2) {
+        boolean similar = false;
+        if (item1 != null
+                && !item1.getType().equals(Material.AIR)
+                && item2 != null
+                && !item2.getType().equals(Material.AIR)) {
+            similar = item1.getDurability() == item2.getDurability()
+                    && item1.getType().equals(item2.getType());
+            if (item1.hasItemMeta() && item2.hasItemMeta())
+                similar = similar && item1.getItemMeta().equals(item2.getItemMeta());
+
+        }
+        return similar;
     }
 }

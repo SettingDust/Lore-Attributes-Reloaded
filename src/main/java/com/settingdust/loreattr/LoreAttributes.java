@@ -19,10 +19,10 @@ public class LoreAttributes extends JavaPlugin {
         saveConfig();
 
         if (loreManager == null) {
-            loreManager = new LoreManager(this);
+            loreManager = new LoreManager();
         }
 
-        Bukkit.getServer().getPluginManager().registerEvents(new LoreEvents(), this);
+        Bukkit.getServer().getPluginManager().registerEvents(new LoreEvents(this), this);
     }
 
     public void onDisable() {
@@ -35,7 +35,7 @@ public class LoreAttributes extends JavaPlugin {
                 return false;
             }
             Player p = (Player) sender;
-            p.sendMessage("Health: " + p.getHealth() + "/" + p.getMaxHealth());
+            p.sendMessage("生命值: " + p.getHealth() + "/" + p.getMaxHealth());
             return true;
         }
 
