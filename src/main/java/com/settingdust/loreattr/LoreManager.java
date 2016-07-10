@@ -28,7 +28,6 @@ public class LoreManager {
     private Pattern armorRegex;
     private Pattern restrictionRegex;
     private Pattern levelRegex;
-
     private Map<String, Timestamp> attackLog;
     private boolean attackSpeedEnabled;
     private Random generator;
