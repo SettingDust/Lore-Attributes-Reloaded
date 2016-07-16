@@ -12,6 +12,7 @@ import org.bukkit.Material;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 
 public class LoreManager {
     private LoreAttributes plugin;
@@ -33,6 +34,7 @@ public class LoreManager {
     private Pattern duraRegenRegex;
     private Pattern expRegex;
     private Pattern boundRegex;
+    private Pattern duraRegex;
 
     private Map<String, Timestamp> attackLog;
     private boolean attackSpeedEnabled;
@@ -68,6 +70,7 @@ public class LoreManager {
         this.duraRegenRegex = Pattern.compile("[+](\\d+)[/][s][ ](" + LoreAttributes.config.getString("lore.duraregen.keyword").toLowerCase() + ")");
         this.expRegex = Pattern.compile("[+](\\d+)[%][ ](" + LoreAttributes.config.getString("lore.exp.keyword").toLowerCase() + ")");
         this.boundRegex = Pattern.compile("(" + LoreAttributes.config.getString("lore.bound.keyword").toLowerCase() + ": )(\\w*)");
+        this.duraRegex = Pattern.compile("(" + LoreAttributes.config.getString("lore.dura.keyword").toLowerCase() + ": )(\\d+)[/](\\d+)");
     }
 
     public void disable() {
@@ -76,44 +79,46 @@ public class LoreManager {
             this.attackLog.clear();
     }
 
-    public void handleArmorRestriction(Player player) {
-        if (!canUse(player, player.getInventory().getBoots())) {
-            if (player.getInventory().firstEmpty() >= 0)
-                player.getInventory().addItem(player.getInventory().getBoots());
-            else {
-                player.getWorld().dropItem(player.getLocation(), player.getInventory().getBoots());
-            }
-            player.getInventory().setBoots(new ItemStack(Material.AIR));
-        }
-
-        if (!canUse(player, player.getInventory().getChestplate())) {
-            if (player.getInventory().firstEmpty() >= 0)
-                player.getInventory().addItem(player.getInventory().getChestplate());
-            else {
-                player.getWorld().dropItem(player.getLocation(), player.getInventory().getChestplate());
-            }
-            player.getInventory().setChestplate(new ItemStack(Material.AIR));
-        }
-
-        if (!canUse(player, player.getInventory().getHelmet())) {
-            if (player.getInventory().firstEmpty() >= 0)
-                player.getInventory().addItem(player.getInventory().getHelmet());
-            else {
-                player.getWorld().dropItem(player.getLocation(), player.getInventory().getHelmet());
-            }
-            player.getInventory().setHelmet(new ItemStack(Material.AIR));
-        }
-
-        if (!canUse(player, player.getInventory().getLeggings())) {
-            if (player.getInventory().firstEmpty() >= 0)
-                player.getInventory().addItem(player.getInventory().getLeggings());
-            else {
-                player.getWorld().dropItem(player.getLocation(), player.getInventory().getLeggings());
-            }
-            player.getInventory().setLeggings(new ItemStack(Material.AIR));
-        }
-        applyHpBonus(player);
-    }
+    /**
+     * public void handleArmorRestriction(Player player) {
+     * if (!canUse(player, player.getInventory().getBoots())) {
+     * if (player.getInventory().firstEmpty() >= 0)
+     * player.getInventory().addItem(player.getInventory().getBoots());
+     * else {
+     * player.getWorld().dropItem(player.getLocation(), player.getInventory().getBoots());
+     * }
+     * player.getInventory().setBoots(new ItemStack(Material.AIR));
+     * }
+     * <p/>
+     * if (!canUse(player, player.getInventory().getChestplate())) {
+     * if (player.getInventory().firstEmpty() >= 0)
+     * player.getInventory().addItem(player.getInventory().getChestplate());
+     * else {
+     * player.getWorld().dropItem(player.getLocation(), player.getInventory().getChestplate());
+     * }
+     * player.getInventory().setChestplate(new ItemStack(Material.AIR));
+     * }
+     * <p/>
+     * if (!canUse(player, player.getInventory().getHelmet())) {
+     * if (player.getInventory().firstEmpty() >= 0)
+     * player.getInventory().addItem(player.getInventory().getHelmet());
+     * else {
+     * player.getWorld().dropItem(player.getLocation(), player.getInventory().getHelmet());
+     * }
+     * player.getInventory().setHelmet(new ItemStack(Material.AIR));
+     * }
+     * <p/>
+     * if (!canUse(player, player.getInventory().getLeggings())) {
+     * if (player.getInventory().firstEmpty() >= 0)
+     * player.getInventory().addItem(player.getInventory().getLeggings());
+     * else {
+     * player.getWorld().dropItem(player.getLocation(), player.getInventory().getLeggings());
+     * }
+     * player.getInventory().setLeggings(new ItemStack(Material.AIR));
+     * }
+     * applyHpBonus(player);
+     * }
+     */
 
     public boolean canUse(Player player, ItemStack item) {
         if ((item != null) &&
@@ -443,7 +448,12 @@ public class LoreManager {
             }
             if (hpToAdd < 0) hpToAdd = 0;
         }
-
+        ItemStack item = entity.getEquipment().getItemInHand();
+        if ((item != null) &&
+                (item.hasItemMeta()) &&
+                (item.getItemMeta().hasLore())) {
+            hpToAdd = hpToAdd + this.getHealth(item);
+        }
         return hpToAdd;
     }
 
@@ -464,9 +474,19 @@ public class LoreManager {
                     regenBonus = regenBonus + Integer.valueOf(matcher.group(1));
                 }
             }
-
         }
+        ItemStack item = entity.getEquipment().getItemInHand();
+        if ((item != null) &&
+                (item.hasItemMeta()) &&
+                (item.getItemMeta().hasLore())) {
+            List lore = item.getItemMeta().getLore();
+            String allLore = lore.toString().toLowerCase();
 
+            Matcher matcher = this.regenRegex.matcher(allLore);
+            if (matcher.find()) {
+                regenBonus = regenBonus + Integer.valueOf(matcher.group(1));
+            }
+        }
         return regenBonus;
     }
 
@@ -706,5 +726,69 @@ public class LoreManager {
 
         }
         return similar;
+    }
+
+    public boolean hasDura(ItemStack item) {
+        boolean dura = false;
+        if (item != null
+                && item.hasItemMeta()
+                && !item.getType().equals(Material.AIR)
+                && item.getItemMeta().hasLore()) {
+            List lore = item.getItemMeta().getLore();
+            String allLore = lore.toString().toLowerCase();
+            Matcher matcher = this.duraRegex.matcher(allLore);
+            dura = matcher.find();
+        }
+        return dura;
+    }
+
+    public int getDura(ItemStack item) {
+        int dura = 0;
+        if (this.hasDura(item)
+                && item != null
+                && item.hasItemMeta()
+                && !item.getType().equals(Material.AIR)
+                && item.getItemMeta().hasLore()) {
+            List lore = item.getItemMeta().getLore();
+            String allLore = lore.toString().toLowerCase();
+            Matcher matcher = this.duraRegex.matcher(allLore);
+
+            if (matcher.find())
+                dura = Integer.parseInt(matcher.group(2));
+        }
+        return dura;
+    }
+
+    public boolean addDura(ItemStack item, int dura) {
+        boolean success = true;
+        if (item != null
+                && item.hasItemMeta()
+                && !item.getType().equals(Material.AIR)
+                && item.getItemMeta().hasLore()) {
+            List<String> lore = item.getItemMeta().getLore();
+            for (int i = 0; i < lore.size(); i++) {
+                Matcher matcher = this.duraRegex.matcher(lore.get(i));
+                if (matcher.find()) {
+                    if (Integer.parseInt(matcher.group(2)) + dura <= 0) {
+                        lore.remove(i);
+                    } else if (Integer.parseInt(matcher.group(2)) + dura >
+                            Integer.parseInt(matcher.group(3))) {
+                        success = false;
+                        lore.set(i, LoreAttributes.config.getString("lore.dura.keyword").toLowerCase()
+                                + ": " + Integer.parseInt(matcher.group(3)) + "/" +
+                                Integer.parseInt(matcher.group(3)));
+                    } else {
+                        lore.set(i, LoreAttributes.config.getString("lore.dura.keyword").toLowerCase()
+                                + ": " + (Integer.parseInt(matcher.group(2)) + dura) + "/" +
+                                Integer.parseInt(matcher.group(3)));
+                    }
+                    ItemMeta itemMeta = item.getItemMeta();
+                    itemMeta.setLore(lore);
+                    item.setItemMeta(itemMeta);
+                    item.setDurability((short) 0);
+                }
+            }
+        }
+        return success;
     }
 }

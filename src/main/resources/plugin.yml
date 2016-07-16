@@ -9,3 +9,4 @@ commands:
     description: Display health of yourself.
   lorestats:
     description: Display the stat benefits of your lore.
+  dura:
