@@ -38,5 +38,10 @@ lore:
   bound:
     keyword: bound
     message: "本物品只能由{name}使用"
+  range:
+    keyword: range
+  dura:
+    keyword: dura
+    message: "已达到耐久上限"
 integration:
   permissionshealth: false
